@@ -11,8 +11,7 @@ public class VisualKinematics {
 	 * @return
 	 */
 	double[] updateStep(Matrix J, double[] error) {
-		// return pinv(J) * error
-		return null;
+		return J.solve(new Matrix(error, error.length)).getColumnPackedCopy();
 	}
 	
 
@@ -25,8 +24,11 @@ public class VisualKinematics {
 	 * @return
 	 */
 	Matrix broydenUpdate(Matrix J, double[] dx, double dy[]) {
-		// Jk+1 = Jk + (dy - J dx) dx^T / ()
-		return null;
+		Matrix X = new Matrix(dx, dx.length);
+		Matrix Y = new Matrix(dy, dy.length);
+		
+		// J + (Y - J*X)*X' * (1 / X'*X)
+		return J.plus( (Y.minus(J.times(X))).times(X.transpose()).times(1/X.transpose().times(X).get(0, 0)));
 	}
 
 }
