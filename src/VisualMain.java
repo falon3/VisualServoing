@@ -16,7 +16,22 @@ public class VisualMain {
             System.out.println(tracker.x + " " + tracker.y);
         }
 
-		   
+	}
+	
+	/**
+	 * Get the tracker information
+	 * @return
+	 */
+	double[] getTrackerPosition() {
+		return new double[] {tracker.x, tracker.y};
+	}
+	
+	/**
+	 * Get the tracker target information
+	 * @return
+	 */
+	double[] getTargetPosition() {
+		return new double[] {tracker.targetx, tracker.targety};
 	}
 
 }

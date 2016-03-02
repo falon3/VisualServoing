@@ -30,21 +30,4 @@ public class RobotController {
 		//    J = VisualKinematics.broydenUpdate(J, dx, error) // CHECK which dx and error this is
 	}
 	
-	
-	/// Should this go in its own class? Main?
-	/// Right now, this stuff is in main.
-	
-	double[] getTrackerPosition() {
-		// Get the tracker information
-		// return [tracker.x, tracker.y]
-		return null;
-	}
-	
-	double[] getTargetPosition() {
-		// Get the tracker target information
-		// return [target.x, target.y]
-		return null;
-	}
-	
-	
 }
