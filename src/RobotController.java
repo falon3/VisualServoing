@@ -1,20 +1,43 @@
 import lejos.utility.Matrix;
 
+import lejos.hardware.motor.EV3LargeRegulatedMotor;
+import lejos.hardware.port.MotorPort;
+import lejos.robotics.RegulatedMotor;
+import lejos.utility.Delay;
+
 public class RobotController {
+    private static RegulatedMotor m_motorA;
+	private static RegulatedMotor m_motorB;
+
+  	private static final int motor_speed = 70;
+	private static final int motor_accel = 30;
+	
+	private static final double[] gear_ratios = {15d/30d, 1d, -1d};
+
 	/**
 	 * Moves the joints slightly to find an estimate for
 	 * the jacobian at the current location.
 	 * @return
 	 */
-	static Matrix estimateJacobian() {
-		// for each joint
-		//	   y0 = getTrackerPosition()
-		//     move joint slightly
-		//	   y1 = getTrackerPosition()
-		//	   insert y1 - y0 into the jacobian as a column vector
-		// return J
-		
-		return null;
+	public static Matrix estimateJacobian() {
+        Matrix J = new Matrix(2,2);
+        double deltaTheta = 0.0; // wiggle this many degrees to get initial J
+        RegulatedMotor motorA=getMotorA();
+        RegulatedMotor motorB=getMotorB();
+        RegulatedMotor[] motors= new RegulatedMotor[] {motorA,motorB};
+        
+        for (int j=0; j<2; j++){
+            double[] q0 = VisualMain.getTrackerPosition();
+            motors[j].rotateTo((int)Math.round(deltaTheta));
+            // may need a delay in here??
+            Delay.msDelay(100);
+            double[] q1 = VisualMain.getTrackerPosition();
+            J.set(0, j, q1[0]-q0[0]/deltaTheta);
+            J.set(1, j, q1[1]-q1[1]/deltaTheta);
+            //move joints back after
+            motors[j].rotateTo(-(int)Math.round(deltaTheta));
+        }
+     	return J;
 	}
 	
 	/**
@@ -24,14 +47,14 @@ public class RobotController {
 		 Matrix J = estimateJacobian();
 		 double eps = 0.0001;
 		 
-		 double[] features;
+		 double[] features = VisualMain.getTrackerPosition();;
 		 double[] fprev;
 		 double[] target = VisualMain.getTargetPosition();
 		 
 		 double[] error = new double[target.length];
 
 		 double[] fstart = features.clone();
-		 double[] q;
+		 double[] q = getJointAngles();;
 		 double[] dq = new double[q.length];
 		 
 		 double distance = 0d;
@@ -39,9 +62,6 @@ public class RobotController {
 		 //====
 		 // Run the first step
 		 J = estimateJacobian();
-
-		 // Get the features
-		 features = VisualMain.getTrackerPosition();
 		 
 		 // Compute the error
 		 for (int i = 0; i < features.length; i++) {
@@ -123,5 +143,31 @@ public class RobotController {
 		for (double x : X)
 			s += x*x;
 		return s;
+	}
+
+	static void rotateTo(double[] angles) {
+		getMotorA().rotateTo((int) Math.round(angles[0]));
+		getMotorB().rotateTo((int) Math.round(angles[1]));
+	}
+	
+	static double[] getJointAngles() {
+		return new double[] {getMotorA().getTachoCount(), getMotorB().getTachoCount()};
+	}
+	
+    /**
+	 * Gets motorA as a singleton. Prevents the port from being opened twice.
+	 */
+	private static RegulatedMotor getMotorA() {
+		if (m_motorA == null)
+			m_motorA = new EV3LargeRegulatedMotor(MotorPort.A);
+		return m_motorA;
+	}
+	/**
+	 * Gets motorB as a singleton. Prevents the port from being opened twice.
+	 */
+	private static RegulatedMotor getMotorB() {
+		if (m_motorB == null)
+			m_motorB = new EV3LargeRegulatedMotor(MotorPort.B);
+		return m_motorB;
 	}
 }
