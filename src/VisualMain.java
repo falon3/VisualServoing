@@ -6,14 +6,15 @@ public class VisualMain {
 	
         tracker = new TrackerReader();
         tracker.start();
+        
         while (true) {
             //Delay.msDelay(1000);
-	    try {
-		Thread.sleep(1000);         //1000 milliseconds is one second.
-	    } catch(InterruptedException ex) {
-		Thread.currentThread().interrupt();
-	    }
-            System.out.println(tracker.x + " " + tracker.y);
+		    try {
+		    	Thread.sleep(1000);         //1000 milliseconds is one second.
+		    } catch(InterruptedException ex) {
+		    	Thread.currentThread().interrupt();
+		    }
+            RobotController.moveToTarget();
         }
 
 	}
@@ -22,7 +23,7 @@ public class VisualMain {
 	 * Get the tracker information
 	 * @return
 	 */
-	double[] getTrackerPosition() {
+	static double[] getTrackerPosition() {
 		return new double[] {tracker.x, tracker.y};
 	}
 	
@@ -30,7 +31,7 @@ public class VisualMain {
 	 * Get the tracker target information
 	 * @return
 	 */
-	double[] getTargetPosition() {
+	static double[] getTargetPosition() {
 		return new double[] {tracker.targetx, tracker.targety};
 	}
 

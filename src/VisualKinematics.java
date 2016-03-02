@@ -10,7 +10,7 @@ public class VisualKinematics {
 	 * robot movements (delta q)
 	 * @return
 	 */
-	double[] updateStep(Matrix J, double[] error) {
+	static double[] updateStep(Matrix J, double[] error) {
 		return J.solve(new Matrix(error, error.length)).getColumnPackedCopy();
 	}
 	
@@ -23,7 +23,7 @@ public class VisualKinematics {
 	 * @param dy
 	 * @return
 	 */
-	Matrix broydenUpdate(Matrix J, double[] dx, double dy[]) {
+	static Matrix broydenUpdate(Matrix J, double[] dx, double dy[]) {
 		Matrix X = new Matrix(dx, dx.length);
 		Matrix Y = new Matrix(dy, dy.length);
 		
