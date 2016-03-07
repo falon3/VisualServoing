@@ -1,5 +1,6 @@
 import java.awt.Point;
 
+import lejos.hardware.Button;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.port.MotorPort;
 import lejos.robotics.RegulatedMotor;
@@ -11,7 +12,6 @@ public class RobotController {
 	private static RegulatedMotor m_motorB;
 	private static RegulatedMotor m_motorC;
 
-	private static final int clamp_tachs = 3160;
   	private static final int motor_speed = 40;
 	private static final int motor_accel = 10;
 	// dont know how to make these work
@@ -121,7 +121,7 @@ public class RobotController {
 				error2[i] = target[i] - features[i];
 			}
 			
-			System.out.format("sumsq error: %.2f  error2 = [%.2f, %.2f]",Math.sqrt(sumsq(error2)), error2[0], error2[1]);
+//			System.out.format("sumsq error: %.2f  error2 = [%.2f, %.2f]",Math.sqrt(sumsq(error2)), error2[0], error2[1]);
 //	        if norm(epos - pos) < thresh, break; end;
 			if (Math.sqrt(sumsq(error2)) < threshold) {
 				System.out.format("error within thresh for this mini Goal! features: [%.2f, %.2f] ?\n target: [%.2f, %.2f]", features[0], features[1], target[0], target[1]);
@@ -129,6 +129,8 @@ public class RobotController {
 			}
 	        
 //	        Update Jacobian (if error increased)
+			//TODO:(maybe) SHOULD PATH BE UPDATED AT THIS POINT? BECAUSE WE VEERED?
+			
 //	        Bk = Bk + ((yk - Bk*sk)*sk')/(sk'*sk);
 			if (sumsq(error) < sumsq(error2)) {
 				J = VisualKinematics.broydenUpdate(J, deltaQ, deltaY);
@@ -213,7 +215,10 @@ public class RobotController {
 	
 	static void grabIt(){
 		m_motorC = getMotorC();
-		m_motorC.rotate(-clamp_tachs, true);
+		m_motorC.backward();
+		Button.waitForAnyPress();
+		m_motorC.stop(true);
+		
 		//ATTEMPT AT ERROR CONTROL FOR BREAKING BUT DOESN'T SEEM TO WORK
 		//while (m_motorC.isMoving()){
 			//if (m_motorC.isStalled() == true) m_motorC.stop();
@@ -223,7 +228,10 @@ public class RobotController {
 	
 	static void letItGo(){
 		m_motorC = getMotorC();
-		m_motorC.rotate(clamp_tachs, true);
+		m_motorC.forward();
+		Button.waitForAnyPress();
+		m_motorC.stop(true);
+		
 		//ATTEMPT AT ERROR CONTROL FOR BREAKING BUT DOESN'T SEEM TO WORK
 		//while (m_motorC.isMoving()){
 			//if (m_motorC.isStalled() == true) m_motorC.stop();

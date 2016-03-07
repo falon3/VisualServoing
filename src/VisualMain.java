@@ -7,20 +7,20 @@ public class VisualMain {
 		// TODO Auto-generated method stub
 	
         tracker = new TrackerReader();
+        tracker.start();
 		RobotController.letItGo();
 		open = true;
    
-        while (true) {
-        	tracker.start();// TODO FIGURE OUT HOW TO RESTART tracker
+        while (true) {	
         	System.out.format("Select target \nselect tracker \nthen push any button\n");
             Button.waitForAnyPress();
             RobotController.moveToTarget();
-            if (open==true){
+            if (open==true){ //TODO WHY DOESN'T THIS GO TO OPEN AFTER IT GRABS next loop? ...tries to grab again instead
             	System.out.format("press any button to pick up");
             	Button.waitForAnyPress();
             	RobotController.grabIt();
             	open = false;
-            	//TODO WHY DOESN'T THIS CONTINUE THE LOOP AGAIN AFTER IT GRABS?
+            	
             }
             else{
             	RobotController.letItGo();
