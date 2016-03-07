@@ -1,0 +1,6 @@
+save json-simple-1.1.1.jar file into ~/lejos/ejre1.7.0_60/lib/ext
+also import the json library into the buildpath before compiling
+
+run program on the robot and then run the python tracker.py file after on the computer.
+
+use mouse in tracker video window to select points
