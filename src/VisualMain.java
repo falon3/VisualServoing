@@ -1,20 +1,31 @@
+import lejos.hardware.Button;
 
 public class VisualMain {
 	public static TrackerReader tracker;
+	public static boolean open;
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 	
         tracker = new TrackerReader();
-        tracker.start();
-        
+		RobotController.letItGo();
+		open = true;
+   
         while (true) {
-            //Delay.msDelay(1000);
-		    try {
-		    	Thread.sleep(1000);         //1000 milliseconds is one second.
-		    } catch(InterruptedException ex) {
-		    	Thread.currentThread().interrupt();
-		    }
+        	tracker.start();// TODO FIGURE OUT HOW TO RESTART tracker
+        	System.out.format("Select target \nselect tracker \nthen push any button\n");
+            Button.waitForAnyPress();
             RobotController.moveToTarget();
+            if (open==true){
+            	System.out.format("press any button to pick up");
+            	Button.waitForAnyPress();
+            	RobotController.grabIt();
+            	open = false;
+            	//TODO WHY DOESN'T THIS CONTINUE THE LOOP AGAIN AFTER IT GRABS?
+            }
+            else{
+            	RobotController.letItGo();
+            	open = true;
+            }
         }
 
 	}
