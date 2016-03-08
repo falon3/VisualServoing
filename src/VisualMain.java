@@ -1,5 +1,9 @@
 import lejos.hardware.Button;
 
+/** VisualMain handles the call to move robot arm to selected target 
+ *  and then grab an item and move it to the next selected position 
+ *  before releasing it there, in a loop. using the Visual Tracker tool.
+ * */
 public class VisualMain {
 	public static TrackerReader tracker;
 	public static boolean open;
@@ -8,11 +12,12 @@ public class VisualMain {
 	
         tracker = new TrackerReader();
         tracker.start();
-		RobotController.letItGo();
-		open = true;
+        // start with robot clamp open
+	RobotController.letItGo();
+	open = true;
    
         while (true) {	
-        	System.out.format("Select target \nselect tracker \nthen push any button\n");
+            System.out.format("Select target \nselect tracker \nthen push any button\n");
             Button.waitForAnyPress();
             RobotController.moveToTarget();
             if (open==true){ //TODO WHY DOESN'T THIS GO TO OPEN AFTER IT GRABS next loop? ...tries to grab again instead
