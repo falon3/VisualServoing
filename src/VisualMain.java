@@ -11,21 +11,21 @@ public class VisualMain {
 		RobotController.letItGo();
 		open = true;
    
-        while (true) {	
+        while (true) {
         	System.out.format("Select target \nselect tracker \nthen push any button\n");
             Button.waitForAnyPress();
             RobotController.moveToTarget();
-            if (open==true){ //TODO WHY DOESN'T THIS GO TO OPEN AFTER IT GRABS next loop? ...tries to grab again instead
-            	System.out.format("press any button to pick up");
-            	Button.waitForAnyPress();
+            
+            if (open){
+            	System.out.format("press any button to stop...");
             	RobotController.grabIt();
-            	open = false;
-            	
-            }
-            else{
+            } else {
+            	System.out.format("releasing object...");
             	RobotController.letItGo();
-            	open = true;
             }
+            
+            // Toggle open/close mode
+            open = !open;
         }
 
 	}

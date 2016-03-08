@@ -67,7 +67,6 @@ public class RobotController {
 		for (Point p : path) {
 			J = moveToTarget(J, new double[] {p.getX(), p.getY()});
 		}
-		RobotController.grabIt();
 	}
 	
 	private static Matrix moveToTarget(Matrix J, double[] target) {
@@ -246,8 +245,6 @@ public class RobotController {
 	}
 	
 	static void letItGo(){
-		
-		getMotorC().flt();
 		
 		getMotorC().forward();
 		
