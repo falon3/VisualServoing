@@ -15,7 +15,7 @@ public class RobotController {
 	private static RegulatedMotor m_motorC;
 	private static EV3TouchSensor m_sensor1;
 
-  	private static final int motor_speed = 40;
+  	private static final int motor_speed = 30;
 	private static final int motor_accel = 10;
 	// dont know how to make these work
 	//private static final int motor_safe_stall = 5;
@@ -59,40 +59,63 @@ public class RobotController {
 		double[] target = VisualMain.getTargetPosition();
 		double[] start = VisualMain.getTrackerPosition();
 		double[] final_target = target;
+		System.out.format("BEGIN at: (%.2f, %.2f)\n", start[0], start[1]);
 		System.out.format("BEGIN with Final Target: (%.2f, %.2f)\n", final_target[0], final_target[1]);
-		Point[] path = VisualKinematics.createLinePath(start, target, 40);
+		
+		Point[] path = VisualKinematics.createLinePath(start, target, 10);
 		Matrix J = estimateJacobian();
 
 		Matrix stop = new Matrix(2, 2, 1.0);
 		for (Point p : path) {
-			J = moveToTarget(J, new double[] {p.getX(), p.getY()});
+			J = moveToTarget(J, new double[] {p.getX(), p.getY()}, final_target);
 		}
+		
+		// Make sure we're on the target
+		System.out.format("FINAL at: (%.2f, %.2f)\n", start[0], start[1]);
+		System.out.format("FINAL with Final Target: (%.2f, %.2f)\n", final_target[0], final_target[1]);
+		moveToTarget(J, final_target, final_target);
+
 	}
 	
-	private static Matrix moveToTarget(Matrix J, double[] target) {
-		double threshold = 5;
+	private static Matrix moveToTarget(Matrix J, double[] target, double[] final_target) {
+		final double threshold = 5;
+		final double normThreshold = 4; // Threshold for recalculation of Jacobian
+		
 //		[epos, Bk] = evalRobot2D(l, theta);
 		double[] features = VisualMain.getTrackerPosition();
+		double[] start = features.clone();
 		double[] pfeatures;
 		double[] theta = getJointAngles();
-
-		while( (Math.abs((int)(target[0]-features[0])) > 5) && (Math.abs((int)(target[1]-features[1])) > 5)){
+		
+		System.out.format("START: (%.2f, %.2f)\n", start[0], start[1]);
+		System.out.format("TARGET: (%.2f, %.2f)\n", target[0], target[1]);
+		
+		// Loop until within radius _threshold_
+		while (Math.sqrt(sumsq(arrayDiff(target, features))) > threshold) {
+			
+			// quit if we're closer to the final target than the current one
+			// but not far off from our target
+			if (Math.sqrt(sumsq(arrayDiff(final_target, features))) > Math.sqrt(sumsq(arrayDiff(target, features)))) {
+				System.out.println("Found better solution! Skipping mini target");
+				break;
+			}
+			
 //			double left = Math.sqrt(sumsq(new double[] {target[0]-features[0], target[1]-features[1]}));
 //			System.out.format("features: (%.2f, %.2f), goal: (%.2f, %.2f) left to go this step: %f.2 \n", features[0], features[1], target[0], target[1], left);
 //	        %% Newton-like step
 //	        sk = Bk\-(epos-pos);
 //	        theta = mod(theta + sk, 2*pi);
 			
-			double[] error = new double[features.length];
-			for (int i = 0; i < features.length; i++) {
-				error[i] = target[i] - features[i];
-			}
+			double[] error = arrayDiff(target, features);
 			
 			double[] deltaQ = VisualKinematics.updateStep(J, error);
 			System.out.format("update step: [%.2f, %.2fs] degrees?\n", deltaQ[0], deltaQ[1]);
 			for (int i = 0; i < theta.length; i++) {
-				theta[i] = (theta[i] + Math.min(Math.max(deltaQ[i], -MAX_MOVE), MAX_MOVE)) % 360d;
+				// clamp movement amount
+				deltaQ[i] = Math.min(Math.max(deltaQ[i], -MAX_MOVE), MAX_MOVE);
+				theta[i] = (theta[i] + deltaQ[i]) % 360d;
 			}
+			System.out.format("real step: [%.2f, %.2fs] degrees\n", deltaQ[0], deltaQ[1]);
 
 //	        %% Compute new function values
 //	        ppos = epos;
@@ -101,41 +124,38 @@ public class RobotController {
 //	        yk = epos - ppos;
 			
 			pfeatures = features.clone();
-			rotateTo(theta);
+			rotate(deltaQ);
 			Delay.msDelay(500);			
 			features = VisualMain.getTrackerPosition();
+
+			// get deltaY after moving
+			double[] deltaY = arrayDiff(features, pfeatures);
+			
+			// Get the new error after moving
+			double[] error2 = arrayDiff(target, features);
 			
 			//ADDED THIS	
 			//check if at target already before moving again
-			if ( (Math.abs((int)(target[0]-features[0])) < 5) && (Math.abs((int)(target[1]-features[1])) < 5) ){
+			if ( Math.sqrt(sumsq(error2)) < threshold ){
 				System.out.format("AT MINI TARGET! features: [%.2f, %.2f] ?\n target: [%.2f, %.2f]", features[0], features[1], target[0], target[1]);
 				break;
 			}
 			
-			// get deltaY after moving
-			double[] deltaY = new double[features.length];
-			for (int i = 0; i < features.length; i++) {
-				deltaY[i] = features[i] - pfeatures[i];
-			}
-			// Get the new error after moving
-			double[] error2 = new double[features.length];
-			for (int i = 0; i < features.length; i++) {
-				error2[i] = target[i] - features[i];
-			}
-			
-//			System.out.format("sumsq error: %.2f  error2 = [%.2f, %.2f]",Math.sqrt(sumsq(error2)), error2[0], error2[1]);
-//	        if norm(epos - pos) < thresh, break; end;
-			if (Math.sqrt(sumsq(error2)) < threshold) {
-				System.out.format("error within thresh for this mini Goal! features: [%.2f, %.2f] ?\n target: [%.2f, %.2f]", features[0], features[1], target[0], target[1]);
-				break;
-			}
-	        
 //	        Update Jacobian (if error increased)
 			//TODO:(maybe) SHOULD PATH BE UPDATED AT THIS POINT? BECAUSE WE VEERED?
 			
 //	        Bk = Bk + ((yk - Bk*sk)*sk')/(sk'*sk);
 			if (sumsq(error) < sumsq(error2)) {
 				J = VisualKinematics.broydenUpdate(J, deltaQ, deltaY);
+			}
+			
+			// If the jacobian is horrible and useless, we have to
+			// reestimate. No other choice.
+			if (J.normF() > normThreshold) {
+				System.out.println("LOST! Need to reestimate Jacobian.");
+				J = estimateJacobian();
+			} else {
+				System.out.println("Fro. Norm: " + J.normF());
 			}
 		}
 		return J;
@@ -175,11 +195,22 @@ public class RobotController {
 			s += x*x;
 		return s;
 	}
+	
+	static double[] arrayDiff(double[] x, double[] y) {
+		double[] diffs = new double[x.length];
+		for (int i = 0; i < x.length; i++)
+			diffs[i] = x[i] - y[i];
+		return diffs;
+	}
 
 	static void rotateTo(double[] angles) {
 		getMotorA().rotateTo((int) Math.round(angles[0]), true);	
 		getMotorB().rotateTo((int) Math.round(angles[1]), false);
-
+	}
+	
+	static void rotate(double[] delta_angles) {
+		getMotorA().rotate((int) Math.round(delta_angles[0]), true);	
+		getMotorB().rotate((int) Math.round(delta_angles[1]), false);
 	}
 	
 	static double[] getJointAngles() {

@@ -35,7 +35,7 @@ public class VisualKinematics {
 
 	/**
 	 * Given two points, returns a list of target points for the robot to move
-	 * towards along a line, or null if the target has been reached.
+	 * towards along a line.
 	 * 
 	 * @param start
 	 * @param end
