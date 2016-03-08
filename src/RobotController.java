@@ -3,6 +3,8 @@ import java.awt.Point;
 import lejos.hardware.Button;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.port.MotorPort;
+import lejos.hardware.port.SensorPort;
+import lejos.hardware.sensor.EV3TouchSensor;
 import lejos.robotics.RegulatedMotor;
 import lejos.utility.Delay;
 import lejos.utility.Matrix;
@@ -11,6 +13,7 @@ public class RobotController {
     private static RegulatedMotor m_motorA;
 	private static RegulatedMotor m_motorB;
 	private static RegulatedMotor m_motorC;
+	private static EV3TouchSensor m_sensor1;
 
   	private static final int motor_speed = 40;
 	private static final int motor_accel = 10;
@@ -204,8 +207,8 @@ public class RobotController {
 //			m_motorB.setStallThreshold(motor_safe_stall, motor_safe_time);
 		return m_motorB;
 	}
-	
-	private static RegulatedMotor getMotorC() {
+
+	public static RegulatedMotor getMotorC() {
 		if (m_motorC == null)
 			m_motorC = new EV3LargeRegulatedMotor(MotorPort.C);
 			m_motorC.setSpeed(100);
@@ -213,10 +216,26 @@ public class RobotController {
 		return m_motorC;
 	}
 	
+	private static EV3TouchSensor getGripSensor() {
+		if (m_sensor1 == null)
+			m_sensor1 = new EV3TouchSensor(SensorPort.S1);
+		return m_sensor1;
+	}
+	
 	static void grabIt(){
 		m_motorC = getMotorC();
 		m_motorC.backward();
-		Button.waitForAnyPress();
+		
+		final int max_turns = 2800;
+		final int start_tachos = m_motorC.getTachoCount();
+
+		// keep closing the jaws until either a button is pressed
+		// or it moves to the clamping threshold
+		// (the stalling detection isn't implemented very well in lejos)
+		do {
+			if (Button.waitForAnyPress(250) != 0)
+				break;
+		} while (Math.abs(start_tachos - start_tachos) < max_turns);
 		m_motorC.stop(true);
 		
 		//ATTEMPT AT ERROR CONTROL FOR BREAKING BUT DOESN'T SEEM TO WORK
@@ -227,10 +246,20 @@ public class RobotController {
 	}
 	
 	static void letItGo(){
-		m_motorC = getMotorC();
-		m_motorC.forward();
-		Button.waitForAnyPress();
-		m_motorC.stop(true);
+		
+		getMotorC().flt();
+		
+		getMotorC().forward();
+		
+		float[] sample = new float[1];
+		do {
+			// If button press, stop.
+			if (Button.waitForAnyPress(100) != 0)
+				break;
+			// Check the touch sensor
+			getGripSensor().fetchSample(sample, 0);
+		} while (sample[0] < 0.5);
+		getMotorC().flt();
 		
 		//ATTEMPT AT ERROR CONTROL FOR BREAKING BUT DOESN'T SEEM TO WORK
 		//while (m_motorC.isMoving()){
