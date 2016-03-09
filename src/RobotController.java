@@ -78,8 +78,8 @@ public class RobotController {
 	}
 	
 	private static Matrix moveToTarget(Matrix J, double[] target, double[] final_target) {
-		final double threshold = 5;
-		final double normThreshold = 4; // Threshold for recalculation of Jacobian
+		final double threshold = 10;
+		final double condThreshold = 100; // Threshold for recalculation of Jacobian
 		
 //		[epos, Bk] = evalRobot2D(l, theta);
 		double[] features = VisualMain.getTrackerPosition();
@@ -95,7 +95,7 @@ public class RobotController {
 			
 			// quit if we're closer to the final target than the current one
 			// but not far off from our target
-			if (Math.sqrt(sumsq(arrayDiff(final_target, features))) > Math.sqrt(sumsq(arrayDiff(target, features)))) {
+			if (Math.sqrt(sumsq(arrayDiff(final_target, features))) < Math.sqrt(sumsq(arrayDiff(final_target, target)))) {
 				System.out.println("Found better solution! Skipping mini target");
 				break;
 			}
@@ -151,7 +151,7 @@ public class RobotController {
 			
 			// If the jacobian is horrible and useless, we have to
 			// reestimate. No other choice.
-			if (J.normF() > normThreshold) {
+			if (J.inverse().normF()*J.normF() > condThreshold) {
 				System.out.println("LOST! Need to reestimate Jacobian.");
 				J = estimateJacobian();
 			} else {
