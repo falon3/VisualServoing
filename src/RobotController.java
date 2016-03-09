@@ -15,7 +15,7 @@ public class RobotController {
 	private static RegulatedMotor m_motorC;
 	private static EV3TouchSensor m_sensor1;
 
-  	private static final int motor_speed = 30;
+  	private static final int motor_speed = 20;
 	private static final int motor_accel = 10;
 	// dont know how to make these work
 	//private static final int motor_safe_stall = 5;
@@ -58,25 +58,24 @@ public class RobotController {
 	static void moveToTarget() {
 		double[] target = VisualMain.getTargetPosition();
 		double[] start = VisualMain.getTrackerPosition();
-		double[] final_target = target;
 		System.out.format("BEGIN at: (%.2f, %.2f)\n", start[0], start[1]);
-		System.out.format("BEGIN with Final Target: (%.2f, %.2f)\n", final_target[0], final_target[1]);
+		System.out.format("BEGIN with Final Target: (%.2f, %.2f)\n", target[0], target[1]);
 		
 		Point[] path = VisualKinematics.createLinePath(start, target, 10);
 		Matrix J = estimateJacobian();
 
 		Matrix stop = new Matrix(2, 2, 1.0);
 		for (Point p : path) {
-			J = moveToTarget(J, new double[] {p.getX(), p.getY()}, final_target);
+			J = moveToTarget(J, new double[] {p.getX(), p.getY()}, VisualMain.getTargetPosition());
 		}
 		
 		// Make sure we're on the target
 		System.out.format("FINAL at: (%.2f, %.2f)\n", start[0], start[1]);
-		System.out.format("FINAL with Final Target: (%.2f, %.2f)\n", final_target[0], final_target[1]);
-		moveToTarget(J, final_target, final_target);
-
+		target = VisualMain.getTargetPosition();
+		System.out.format("FINAL with Final Target: (%.2f, %.2f)\n", target[0], target[1]);
+		moveToTarget(J, VisualMain.getTargetPosition(), VisualMain.getTargetPosition());
 	}
-	
+
 	private static Matrix moveToTarget(Matrix J, double[] target, double[] final_target) {
 		final double threshold = 10;
 		final double condThreshold = 100; // Threshold for recalculation of Jacobian
@@ -91,6 +90,7 @@ public class RobotController {
 		System.out.format("TARGET: (%.2f, %.2f)\n", target[0], target[1]);
 		
 		// Loop until within radius _threshold_
+		int iteration = 0;
 		while (Math.sqrt(sumsq(arrayDiff(target, features))) > threshold) {
 			
 			// quit if we're closer to the final target than the current one
@@ -125,7 +125,7 @@ public class RobotController {
 			
 			pfeatures = features.clone();
 			rotate(deltaQ);
-			Delay.msDelay(500);			
+			Delay.msDelay(100);
 			features = VisualMain.getTrackerPosition();
 
 			// get deltaY after moving
