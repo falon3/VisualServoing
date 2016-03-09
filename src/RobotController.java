@@ -15,7 +15,7 @@ public class RobotController {
 	private static RegulatedMotor m_motorC;
 	private static EV3TouchSensor m_sensor1;
 
-  	private static final int motor_speed = 30;
+  	private static final int motor_speed = 20;
 	private static final int motor_accel = 10;
 	// dont know how to make these work
 	//private static final int motor_safe_stall = 5;
@@ -58,28 +58,29 @@ public class RobotController {
 	static void moveToTarget() {
 		double[] target = VisualMain.getTargetPosition();
 		double[] start = VisualMain.getTrackerPosition();
-		double[] final_target = target;
 		System.out.format("BEGIN at: (%.2f, %.2f)\n", start[0], start[1]);
-		System.out.format("BEGIN with Final Target: (%.2f, %.2f)\n", final_target[0], final_target[1]);
+		System.out.format("BEGIN with Final Target: (%.2f, %.2f)\n", target[0], target[1]);
 		
 		Point[] path = VisualKinematics.createLinePath(start, target, 10);
 		Matrix J = estimateJacobian();
 
 		Matrix stop = new Matrix(2, 2, 1.0);
 		for (Point p : path) {
-			J = moveToTarget(J, new double[] {p.getX(), p.getY()}, final_target);
+			J = moveToTarget(J, new double[] {p.getX(), p.getY()});
 		}
 		
 		// Make sure we're on the target
 		System.out.format("FINAL at: (%.2f, %.2f)\n", start[0], start[1]);
-		System.out.format("FINAL with Final Target: (%.2f, %.2f)\n", final_target[0], final_target[1]);
-		moveToTarget(J, final_target, final_target);
+		target = VisualMain.getTargetPosition();
+		System.out.format("FINAL with Final Target: (%.2f, %.2f)\n", target[0], target[1]);
+		moveToTarget(J, VisualMain.getTargetPosition());
 
 	}
 	
-	private static Matrix moveToTarget(Matrix J, double[] target, double[] final_target) {
-		final double threshold = 5;
-		final double normThreshold = 4; // Threshold for recalculation of Jacobian
+	private static Matrix moveToTarget(Matrix J, double[] target) {
+		final double threshold = 10;	// Distance to consider the current position "solved"
+		final double normThreshold = 4.5; // Threshold for recalculation of Jacobian
+		final double noiseScale = 0.001; // random noise to add to the Jacobian to kick out of loops
 		
 //		[epos, Bk] = evalRobot2D(l, theta);
 		double[] features = VisualMain.getTrackerPosition();
@@ -91,11 +92,12 @@ public class RobotController {
 		System.out.format("TARGET: (%.2f, %.2f)\n", target[0], target[1]);
 		
 		// Loop until within radius _threshold_
+		int iteration = 0;
 		while (Math.sqrt(sumsq(arrayDiff(target, features))) > threshold) {
 			
 			// quit if we're closer to the final target than the current one
 			// but not far off from our target
-			if (Math.sqrt(sumsq(arrayDiff(final_target, features))) > Math.sqrt(sumsq(arrayDiff(target, features)))) {
+			if (Math.sqrt(sumsq(arrayDiff(VisualMain.getTargetPosition(), features))) > Math.sqrt(sumsq(arrayDiff(target, features)))) {
 				System.out.println("Found better solution! Skipping mini target");
 				break;
 			}
@@ -125,7 +127,7 @@ public class RobotController {
 			
 			pfeatures = features.clone();
 			rotate(deltaQ);
-			Delay.msDelay(500);			
+//			Delay.msDelay(100);	
 			features = VisualMain.getTrackerPosition();
 
 			// get deltaY after moving
@@ -156,6 +158,19 @@ public class RobotController {
 				J = estimateJacobian();
 			} else {
 				System.out.println("Fro. Norm: " + J.normF());
+			}
+			
+			// If we loop a lot, add some random noise to kick
+			// it out of a loop
+			if (++iteration % 100 == 0) {
+				Matrix R = Matrix.random(J.getRowDimension(), J.getColumnDimension());
+				J = J.plus(R.times(noiseScale));
+			}
+			
+			// If it iterates for too long, who cares?
+			if (iteration >= 500) {
+				System.out.println("GAVE UP");
+				break;
 			}
 		}
 		return J;
