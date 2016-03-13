@@ -10,16 +10,13 @@ import lejos.utility.Delay;
 import lejos.utility.Matrix;
 
 public class RobotController {
-    private static RegulatedMotor m_motorA;
+    	private static RegulatedMotor m_motorA;
 	private static RegulatedMotor m_motorB;
 	private static RegulatedMotor m_motorC;
 	private static EV3TouchSensor m_sensor1;
 
   	private static final int motor_speed = 20;
 	private static final int motor_accel = 10;
-	// dont know how to make these work
-	//private static final int motor_safe_stall = 5;
-	//private static final int motor_safe_time = 3; //seconds??
 	
 	private static final double[] gear_ratios = {15d/30d, 1d, -1d};
 	
@@ -76,9 +73,19 @@ public class RobotController {
 		moveToTarget(J, VisualMain.getTargetPosition(), VisualMain.getTargetPosition());
 	}
 
+	/** moveToTarget handles the actual movement of the robot arm by moving each motor the amount of tachos
+	 * 	         needed to get to the next point in the path to the final target. With checks in place to 
+	 * 		 recalculate the Jacobian if the Jacobian was bad and causing the robot to veer in wrong directions
+	 * 	         or a check to do the broyden update for when the error between movements starts to increase.
+	 * @params Matrix J is the current Jacobian Matrix
+	 * @params target is the next target point (x,y) we are moving the arm to in 
+	 * 		  the list of points in the entire path
+	 * 
+	 **/
 	private static Matrix moveToTarget(Matrix J, double[] target, double[] final_target) {
-		final double threshold = 10;
+		final double threshold = 10;	// Distance to consider the current position "solved"
 		final double condThreshold = 100; // Threshold for recalculation of Jacobian
+		final double normThreshold = 4.5; // Threshold for recalculation of Jacobian
 		
 //		[epos, Bk] = evalRobot2D(l, theta);
 		double[] features = VisualMain.getTrackerPosition();
@@ -100,12 +107,6 @@ public class RobotController {
 				break;
 			}
 			
-//			double left = Math.sqrt(sumsq(new double[] {target[0]-features[0], target[1]-features[1]}));
-//			System.out.format("features: (%.2f, %.2f), goal: (%.2f, %.2f) left to go this step: %f.2 \n", features[0], features[1], target[0], target[1], left);
-//	        %% Newton-like step
-//	        sk = Bk\-(epos-pos);
-//	        theta = mod(theta + sk, 2*pi);
-			
 			double[] error = arrayDiff(target, features);
 			
 			double[] deltaQ = VisualKinematics.updateStep(J, error);
@@ -125,6 +126,7 @@ public class RobotController {
 			
 			pfeatures = features.clone();
 			rotate(deltaQ);
+
 			Delay.msDelay(100);
 			features = VisualMain.getTrackerPosition();
 
@@ -134,7 +136,6 @@ public class RobotController {
 			// Get the new error after moving
 			double[] error2 = arrayDiff(target, features);
 			
-			//ADDED THIS	
 			//check if at target already before moving again
 			if ( Math.sqrt(sumsq(error2)) < threshold ){
 				System.out.format("AT MINI TARGET! features: [%.2f, %.2f] ?\n target: [%.2f, %.2f]", features[0], features[1], target[0], target[1]);
@@ -142,8 +143,6 @@ public class RobotController {
 			}
 			
 //	        Update Jacobian (if error increased)
-			//TODO:(maybe) SHOULD PATH BE UPDATED AT THIS POINT? BECAUSE WE VEERED?
-			
 //	        Bk = Bk + ((yk - Bk*sk)*sk')/(sk'*sk);
 			if (sumsq(error) < sumsq(error2)) {
 				J = VisualKinematics.broydenUpdate(J, deltaQ, deltaY);
@@ -202,7 +201,8 @@ public class RobotController {
 			diffs[i] = x[i] - y[i];
 		return diffs;
 	}
-
+	/**  Moves the motors A and B the tacho amounts indicated by the list angles passed as param
+	 */
 	static void rotateTo(double[] angles) {
 		getMotorA().rotateTo((int) Math.round(angles[0]), true);	
 		getMotorB().rotateTo((int) Math.round(angles[1]), false);
@@ -212,7 +212,8 @@ public class RobotController {
 		getMotorA().rotate((int) Math.round(delta_angles[0]), true);	
 		getMotorB().rotate((int) Math.round(delta_angles[1]), false);
 	}
-	
+	/** get current tachos for each motor
+	 */
 	static double[] getJointAngles() {
 		return new double[] {getMotorA().getTachoCount(), getMotorB().getTachoCount()};//, getMotorC().getTachoCount()};
 	}
@@ -224,7 +225,6 @@ public class RobotController {
 		if (m_motorA == null)
 			m_motorA = new EV3LargeRegulatedMotor(MotorPort.A);
 			m_motorA.setSpeed(motor_speed);
-//			m_motorA.setStallThreshold(motor_safe_stall, motor_safe_time);
 		return m_motorA;
 	}
 	/**
@@ -234,18 +234,21 @@ public class RobotController {
 		if (m_motorB == null)
 			m_motorB = new EV3LargeRegulatedMotor(MotorPort.B);
 			m_motorB.setSpeed(motor_speed);
-//			m_motorB.setStallThreshold(motor_safe_stall, motor_safe_time);
 		return m_motorB;
 	}
-
+	/**
+	 * Gets motorC as a singleton. Prevents the port from being opened twice.
+	 */
 	public static RegulatedMotor getMotorC() {
 		if (m_motorC == null)
 			m_motorC = new EV3LargeRegulatedMotor(MotorPort.C);
 			m_motorC.setSpeed(100);
-//			m_motorC.setStallThreshold(motor_safe_stall, motor_safe_time);
 		return m_motorC;
 	}
-	
+	/**
+	 * Gets the touch sensor as a singleton. This sensor is used to prevent the clamp opening too wide
+	 * and causing damage to the robot arm.
+	 */
 	private static EV3TouchSensor getGripSensor() {
 		if (m_sensor1 == null)
 			m_sensor1 = new EV3TouchSensor(SensorPort.S1);
@@ -267,14 +270,11 @@ public class RobotController {
 				break;
 		} while (Math.abs(start_tachos - start_tachos) < max_turns);
 		m_motorC.stop(true);
-		
-		//ATTEMPT AT ERROR CONTROL FOR BREAKING BUT DOESN'T SEEM TO WORK
-		//while (m_motorC.isMoving()){
-			//if (m_motorC.isStalled() == true) m_motorC.stop();
-		//}
-		//carrying = true;
 	}
 	
+	/** Opens the claw clamp until the clamp touches the touch sensor 
+	 *  or a button is pressed
+	 */
 	static void letItGo(){
 		
 		getMotorC().forward();
@@ -288,13 +288,6 @@ public class RobotController {
 			getGripSensor().fetchSample(sample, 0);
 		} while (sample[0] < 0.5);
 		getMotorC().flt();
-		
-		//ATTEMPT AT ERROR CONTROL FOR BREAKING BUT DOESN'T SEEM TO WORK
-		//while (m_motorC.isMoving()){
-			//if (m_motorC.isStalled() == true) m_motorC.stop();
-		//}
-		//m_motorC.stop();
-		//carrying = false;
 	}
 		
 }
