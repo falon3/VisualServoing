@@ -10,6 +10,7 @@ To run and operate:
     - open the VisualServoing java project in Eclipse and compile and upload it onto the EV3 brick
     - run VisualMain.java
     - navigate to the directory that contains tracker.py
+    - make sure that the HOST variable in tracker.py is changed to the robot's ip address.
     - in terminal enter > python tracker.py
     - select with mouse the identifyer yellow object on the robot arm and the object you wish the arm to navigate to
     - press any button on the EV3 brick to start
