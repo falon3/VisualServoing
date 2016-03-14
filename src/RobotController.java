@@ -37,7 +37,6 @@ public class RobotController {
         for (int j=0; j<2; j++){
             double[] q0 = VisualMain.getTrackerPosition();
             motors[j].rotateTo((int)Math.round(motors[j].getTachoCount() + deltaTheta));
-            // may need a delay in here??
             Delay.msDelay(500);
             double[] q1 = VisualMain.getTrackerPosition();
             J.set(0, j, (q1[0]-q0[0])/deltaTheta);
@@ -83,11 +82,10 @@ public class RobotController {
 	 * 
 	 **/
 	private static Matrix moveToTarget(Matrix J, double[] target, double[] final_target) {
-		final double threshold = 10;	// Distance to consider the current position "solved"
+		final double threshold = 10;	  // Distance to consider the current position "solved"
 		final double condThreshold = 100; // Threshold for recalculation of Jacobian
 		final double normThreshold = 4.5; // Threshold for recalculation of Jacobian
-		
-//		[epos, Bk] = evalRobot2D(l, theta);
+
 		double[] features = VisualMain.getTrackerPosition();
 		double[] start = features.clone();
 		double[] pfeatures;
@@ -254,7 +252,9 @@ public class RobotController {
 			m_sensor1 = new EV3TouchSensor(SensorPort.S1);
 		return m_sensor1;
 	}
-	
+	/** Closes the claw clamp until the max clamping threshold is reached
+	 *  or a button is pressed. Used to grab the target object.
+	 */
 	static void grabIt(){
 		m_motorC = getMotorC();
 		m_motorC.backward();
