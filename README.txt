@@ -7,7 +7,7 @@ planar robot arm to reach a desire position, clamp a target item,
 then move to another destination location selected and release the object there.
 
 To run and operate: 
-    - open the VisualMain.jar java project in Eclipse and upload it onto the EV3 brick
+    - open the VisualServoing java project in Eclipse and compile and upload it onto the EV3 brick
     - run VisualMain.java
     - navigate to the directory that contains tracker.py
     - in terminal enter > python tracker.py
