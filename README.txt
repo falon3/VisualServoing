@@ -6,6 +6,8 @@ This program implements uncalibrated visual servoing (UVS) for control of a
 planar robot arm to reach a desire position, clamp a target item, 
 then move to another destination location selected and release the object there.
 
+Note: the IP address in tracker.py was changed to 10.0.1.1 to work with our EV3 robot.
+
 To run and operate: 
     - open the VisualServoing java project in Eclipse and compile and upload it onto the EV3 brick
     - run VisualMain.java
