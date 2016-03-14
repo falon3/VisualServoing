@@ -14,11 +14,13 @@ To run and operate:
     - navigate to the directory that contains tracker.py
     - make sure that the HOST variable in tracker.py is changed to the robot's ip address.
     - in terminal enter > python tracker.py
-    - select with mouse the identifyer yellow object on the robot arm and the object you wish the arm to navigate to
+    - select with mouse the identifyer yellow object on the robot arm and the object you wish 
+        the arm to navigate to
     - press any button on the EV3 brick to start
-    - once at destination object location manually press any button on the EV3 brick to stop the claw grabber 
-      fingers at the desired position secure around the object.
-    - select the next destination point for the object and press any button on the EV3 brick to begin moving there.
+    - once at destination object location manually press any button on the EV3 brick to stop the 
+        claw grabber fingers at the desired position secure around the object.
+    - select the next destination point for the object and press any button on the EV3 brick to 
+        begin moving there.
 
 references:
 * Use of the OpenCV tracker code provided on the course webpage (put into TrackerReader.java)
